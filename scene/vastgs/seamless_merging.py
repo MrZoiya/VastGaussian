@@ -4,7 +4,7 @@
 # Project: VastGaussian
 # File: seamless_merging.py
 # Time: 5/15/24 2:31 PM
-# Des: 无缝合并
+# Description: Seamless merging of partitioned point clouds.
 import os.path
 import json
 import numpy as np
@@ -21,25 +21,25 @@ import matplotlib.patches as patches
 def extend_inf_x_z_bbox(partition_id, m_region, n_region):
     # bbox: [x_min, x_max, z_min, z_max]
     # m_region and n_region must >= 2
-    # 进行无缝合并，需要根据partition所在位置作战original bbox的x z轴的范围，从而进行无缝合并后包含背景元素
-    x, z = int(partition_id.split("_")[0]), int(partition_id.split("_")[1])  # 获取块所在编号
-    if x == 1 and z == 1:  # 左上角
+    # Perform seamless merging by determining   the x and z-axis ranges of the original bbox based on the partition's position.
+    x, z = int(partition_id.split("_")[0]), int(partition_id.split("_")[1])  # Get the partition's coordinates
+    if x == 1 and z == 1:  # Top-left corner
         return [True, False, True, False]
-    if x == m_region and z == 1:  # 右上角
+    if x == m_region and z == 1:  # Top-right corner
         return [False, True, True, False]
-    if x == 1 and z == n_region:  # 左下角
+    if x == 1 and z == n_region:  # Bottom-left corner
         return [True, False, False, True]
-    if x == m_region and z == n_region:  # 右下角
+    if x == m_region and z == n_region:  # Bottom-right corner
         return [False, True, False, True]
-    if 2 <= x <= m_region-1 and z == 1:  # 最上边中间
+    if 2 <= x <= m_region - 1 and z == 1:  # Top-middle
         return [False, False, True, False]
-    if 2 <= z <= n_region-1 and x == 1:  # 最左边中间
+    if 2 <= z <= n_region - 1 and x == 1:  # Left-middle
         return [True, False, False, False]
-    if 2 <= x <= m_region-1 and z == n_region:  # 最下边中间
+    if 2 <= x <= m_region - 1 and z == n_region:  # Bottom-middle
         return [False, False, False, True]
-    if 2 <= z <= n_region-1 and x == m_region:  # 最右边中间
+    if 2 <= z <= n_region - 1 and x == m_region:  # Right-middle
         return [False, True, False, False]
-    if 2 <= x <= m_region-1 and 2 <= z <= n_region-1:  # 中间
+    if 2 <= x <= m_region - 1 and 2 <= z <= n_region - 1:  # Middle
         return [False, False, False, False]
 
 
@@ -81,7 +81,7 @@ def load_ply(path):
 
 
 def extract_point_cloud(points, bbox):
-    """根据camera的边界从初始点云中筛选对应partition的点云"""
+    """Filter the point cloud corresponding to a partition based on the camera's boundary."""
     mask = (points[:, 0] >= bbox[0]) & (points[:, 0] <= bbox[1]) & (
             points[:, 1] >= bbox[2]) & (points[:, 1] <= bbox[3]) & (
                    points[:, 2] >= bbox[4]) & (points[:, 2] <= bbox[5])  # 筛选在范围内的点云，得到对应的mask
@@ -91,18 +91,18 @@ def extract_point_cloud(points, bbox):
 def seamless_merge(model_path, partition_point_cloud_dir):
     save_merge_dir = os.path.join(partition_point_cloud_dir, "point_cloud.ply")
 
-    # 加载partition数据
+    # Load partition data
     with open(os.path.join(model_path, "partition_data.pkl"), "rb") as f:
         partition_scene = pickle.load(f)
 
     m_region, n_region = 0, 0
-    # 获取分成了多少块
+    # Determine the number of partitions
     for partition in partition_scene:
         m, n = int(partition.partition_id.split("_")[0]), int(partition.partition_id.split("_")[1])
         if m > m_region: m_region = m
         if n > n_region: n_region = n
 
-    # 遍历所有partition点云
+    # Iterate through all partition point clouds
     xyz_list = []
     features_dc_list = []
     features_extra_list = []
@@ -113,7 +113,7 @@ def seamless_merge(model_path, partition_point_cloud_dir):
     for partition in partition_scene:
         point_cloud_path = os.path.join(partition_point_cloud_dir, f"{partition.partition_id}_point_cloud.ply")
         xyz, features_dc, features_extra, opacities, scales, rots = load_ply(point_cloud_path)
-        extend_camera_bbox = partition.extend_camera_bbox  # 原始相机包围盒
+        extend_camera_bbox = partition.extend_camera_bbox  # Original camera bounding box
         x_max = extend_camera_bbox[1]
         x_min = extend_camera_bbox[0]
         z_max = extend_camera_bbox[3]
@@ -135,12 +135,12 @@ def seamless_merge(model_path, partition_point_cloud_dir):
         # z_min = -np.inf
         print('region:', point_cloud_path)
         print('x_min:{}, x_max:{}, z_min:{}, z_max:{}'.format(x_min, x_max, z_min, z_max))
-        
+
         point_select_bbox = [x_min, x_max,  # [x_min, x_max, y_min, y_max, z_min, z_max]
                              -np.inf, np.inf,
-                             # 考虑原始点云的包围盒的y轴范围作为还原的范围，因为在partition时，没有考虑y轴方向
+                             # Use the y-axis range of the original point cloud as the restoration range, as y-axis was not considered during partitioning
                              z_min, z_max]
-        
+
         mask = extract_point_cloud(xyz, point_select_bbox)
         xyz_list.append(xyz[mask])
         features_dc_list.append(features_dc[mask])
@@ -148,12 +148,12 @@ def seamless_merge(model_path, partition_point_cloud_dir):
         opacities_list.append(opacities[mask])
         scales_list.append(scales[mask])
         rots_list.append(rots[mask])
-        
+
         fig, ax = plt.subplots()
         x_pos = xyz[mask][:, 0]
         z_pos = xyz[mask][:, 2]
         ax.scatter(x_pos, z_pos, c='k', s=1)
-        
+
         rect = patches.Rectangle((x_min, z_min), x_max-x_min, z_max-z_min, linewidth=1, edgecolor='blue', facecolor='none')
         ax.add_patch(rect)
         ax.title.set_text('Plot of 2D Points')
@@ -171,7 +171,7 @@ def seamless_merge(model_path, partition_point_cloud_dir):
     scales_list = np.concatenate(scales_list, axis=0)
     rots_list = np.concatenate(rots_list, axis=0)
 
-    # 因为使用拓展后的边界进行组合，因此可能会有一些重合的点，因此去重
+    # Remove duplicate points due to overlapping boundaries
     points, mask = np.unique(points, axis=0, return_index=True)
     features_dc_list = features_dc_list[mask]
     features_extra_list = features_extra_list[mask]

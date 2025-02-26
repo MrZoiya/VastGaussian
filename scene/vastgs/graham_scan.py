@@ -4,7 +4,7 @@
 # Project: VastGaussian
 # File: graham_scan.py
 # Time: 5/16/24 2:32 PM
-# Des: python实现凸包算法
+# Description: Python implementation of the convex hull algorithm
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,7 +37,7 @@ def compare_angles(pivot, p1, p2):
 def graham_scan(points):
     n = len(points)
     if n < 3:
-        return "凸包需要至少3个点"
+        return "Convex hull requires at least 3 points."
 
     pivot = min(points, key=lambda point: (point.y, point.x))
     points = sorted(points, key=lambda point: (np.arctan2(point.y - pivot.y, point.x - pivot.x), -point.y, point.x))
@@ -53,11 +53,11 @@ def graham_scan(points):
 
 def plot_convex_hull(points, convex_hull, x, y):
     plt.figure()
-    plt.scatter([p.x for p in points], [p.y for p in points], color='b', label="所有点")
+    plt.scatter([p.x for p in points], [p.y for p in points], color='b', label="All points")
 
-    # 绘制凸包
+    # Plot the convex hull
     plt.plot([p.x for p in convex_hull] + [convex_hull[0].x], [p.y for p in convex_hull] + [convex_hull[0].y],
-             linestyle='-', color='g', label="篱笆边")
+             linestyle='-', color='g', label="Convex hull edges")
 
     for i in range(len(convex_hull)):
         plt.plot([convex_hull[i].x, convex_hull[(i + 1) % len(convex_hull)].x],
@@ -69,11 +69,11 @@ def plot_convex_hull(points, convex_hull, x, y):
 
 
 def run_graham_scan(points, W, H):
-    """获取8个点围成的区域的凸包
-    :param points 8个角点投影后的坐标
-    :param W 图像宽度
-    :param H 图像高度
-    :return 凸包的点集 [x, y]
+    """Get the convex hull of the region enclosed by 8 points.
+    :param points: Projected coordinates of the 8 corner points.
+    :param W: Image width.
+    :param H: Image height.
+    :return: Convex hull point set [x, y].
     """
     # points = [Point(point[0], point[1]) for point in points]
     # convex_hull = graham_scan(points)
@@ -94,10 +94,10 @@ def run_graham_scan(points, W, H):
     # plt.plot(x, y)
     # plt.show()
     # plot_convex_hull(points, convex_hull, x, y)
-    # 计算凸包与图像边界的交集
+    # Calculate the intersection of the convex hull and the image bounds
     intersection = convex_hull_polygon.intersection(image_bounds)
-    image_area = W * H  # 图像面积
-    # 计算交集面积占图像面积的比例
+    image_area = W * H
+    # Calculate the ratio of the intersection area to the image area
     intersection_rate = intersection.area / image_area
 
     # print("intersection_area: ", intersection.area, " image_area: ", image_area, " intersection_rate: ", intersection_rate)
